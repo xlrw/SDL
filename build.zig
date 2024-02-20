@@ -44,6 +44,22 @@ pub fn build(b: *std.Build) void {
             lib.linkFramework("AVFoundation");
             lib.linkFramework("Foundation");
         },
+        .emscripten => {
+            lib.defineCMacro("__EMSCRIPTEN_PTHREADS__ ", "1");
+            lib.defineCMacro("USE_SDL", "2");
+            lib.addCSourceFiles(.{ .files = &emscripten_src_files });
+            if (b.sysroot == null) {
+                @panic("Pass '--sysroot \"$EMSDK/upstream/emscripten\"'");
+            }
+
+            const cache_include = std.fs.path.join(b.allocator, &.{ b.sysroot.?, "cache", "sysroot", "include" }) catch @panic("Out of memory");
+            defer b.allocator.free(cache_include);
+
+            var dir = std.fs.openDirAbsolute(cache_include, std.fs.Dir.OpenDirOptions{ .access_sub_paths = true, .no_follow = true }) catch @panic("No emscripten cache. Generate it!");
+            dir.close();
+
+            lib.addIncludePath(.{ .path = cache_include });
+        },
         else => {
             const config_header = b.addConfigHeader(.{
                 .style = .{ .cmake = b.path("include/SDL_config.h.cmake") },
@@ -381,6 +397,33 @@ const ios_src_files = [_][]const u8{
     "src/joystick/iphoneos/SDL_mfijoystick.m",
 };
 
+const emscripten_src_files = [_][]const u8{
+    "src/audio/emscripten/SDL_emscriptenaudio.c",
+    "src/filesystem/emscripten/SDL_sysfilesystem.c",
+    "src/joystick/emscripten/SDL_sysjoystick.c",
+    "src/locale/emscripten/SDL_syslocale.c",
+    "src/misc/emscripten/SDL_sysurl.c",
+    "src/power/emscripten/SDL_syspower.c",
+    "src/video/emscripten/SDL_emscriptenevents.c",
+    "src/video/emscripten/SDL_emscriptenframebuffer.c",
+    "src/video/emscripten/SDL_emscriptenmouse.c",
+    "src/video/emscripten/SDL_emscriptenopengles.c",
+    "src/video/emscripten/SDL_emscriptenvideo.c",
+
+    "src/timer/unix/SDL_systimer.c",
+    "src/loadso/dlopen/SDL_sysloadso.c",
+    "src/audio/disk/SDL_diskaudio.c",
+    "src/render/opengles2/SDL_render_gles2.c",
+    "src/render/opengles2/SDL_shaders_gles2.c",
+    "src/sensor/dummy/SDL_dummysensor.c",
+
+    "src/thread/pthread/SDL_syscond.c",
+    "src/thread/pthread/SDL_sysmutex.c",
+    "src/thread/pthread/SDL_syssem.c",
+    "src/thread/pthread/SDL_systhread.c",
+    "src/thread/pthread/SDL_systls.c",
+};
+
 const unknown_src_files = [_][]const u8{
     "src/thread/generic/SDL_syscond.c",
     "src/thread/generic/SDL_sysmutex.c",
@@ -392,7 +435,6 @@ const unknown_src_files = [_][]const u8{
     "src/audio/android/SDL_androidaudio.c",
     "src/audio/arts/SDL_artsaudio.c",
     "src/audio/dsp/SDL_dspaudio.c",
-    "src/audio/emscripten/SDL_emscriptenaudio.c",
     "src/audio/esd/SDL_esdaudio.c",
     "src/audio/fusionsound/SDL_fsaudio.c",
     "src/audio/n3ds/SDL_n3dsaudio.c",
@@ -426,7 +468,6 @@ const unknown_src_files = [_][]const u8{
 
     "src/filesystem/android/SDL_sysfilesystem.c",
     "src/filesystem/dummy/SDL_sysfilesystem.c",
-    "src/filesystem/emscripten/SDL_sysfilesystem.c",
     "src/filesystem/n3ds/SDL_sysfilesystem.c",
     "src/filesystem/nacl/SDL_sysfilesystem.c",
     "src/filesystem/os2/SDL_sysfilesystem.c",
@@ -445,7 +486,6 @@ const unknown_src_files = [_][]const u8{
     "src/joystick/android/SDL_sysjoystick.c",
     "src/joystick/bsd/SDL_bsdjoystick.c",
     "src/joystick/dummy/SDL_sysjoystick.c",
-    "src/joystick/emscripten/SDL_sysjoystick.c",
     "src/joystick/n3ds/SDL_sysjoystick.c",
     "src/joystick/os2/SDL_os2joystick.c",
     "src/joystick/ps2/SDL_sysjoystick.c",
@@ -458,7 +498,6 @@ const unknown_src_files = [_][]const u8{
 
     "src/locale/android/SDL_syslocale.c",
     "src/locale/dummy/SDL_syslocale.c",
-    "src/locale/emscripten/SDL_syslocale.c",
     "src/locale/n3ds/SDL_syslocale.c",
     "src/locale/unix/SDL_syslocale.c",
     "src/locale/vita/SDL_syslocale.c",
@@ -475,13 +514,11 @@ const unknown_src_files = [_][]const u8{
 
     "src/misc/android/SDL_sysurl.c",
     "src/misc/dummy/SDL_sysurl.c",
-    "src/misc/emscripten/SDL_sysurl.c",
     "src/misc/riscos/SDL_sysurl.c",
     "src/misc/unix/SDL_sysurl.c",
     "src/misc/vita/SDL_sysurl.c",
 
     "src/power/android/SDL_syspower.c",
-    "src/power/emscripten/SDL_syspower.c",
     "src/power/haiku/SDL_syspower.c",
     "src/power/n3ds/SDL_syspower.c",
     "src/power/psp/SDL_syspower.c",
@@ -556,11 +593,6 @@ const unknown_src_files = [_][]const u8{
     "src/video/directfb/SDL_DirectFB_video.c",
     "src/video/directfb/SDL_DirectFB_vulkan.c",
     "src/video/directfb/SDL_DirectFB_window.c",
-    "src/video/emscripten/SDL_emscriptenevents.c",
-    "src/video/emscripten/SDL_emscriptenframebuffer.c",
-    "src/video/emscripten/SDL_emscriptenmouse.c",
-    "src/video/emscripten/SDL_emscriptenopengles.c",
-    "src/video/emscripten/SDL_emscriptenvideo.c",
     "src/video/kmsdrm/SDL_kmsdrmdyn.c",
     "src/video/kmsdrm/SDL_kmsdrmevents.c",
     "src/video/kmsdrm/SDL_kmsdrmmouse.c",
