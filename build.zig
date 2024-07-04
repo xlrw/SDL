@@ -73,6 +73,9 @@ pub fn build(b: *std.Build) void {
         lib.installHeadersDirectory(b.path("include-pregen"), "SDL2", .{});
         lib.addCSourceFiles(.{ .files = render_driver_sw.src_files });
     } else {
+        // causes pregenerated SDL_config.h to assert an error
+        lib.defineCMacro("USING_GENERATED_CONFIG_H", "");
+
         var files = std.ArrayList([]const u8).init(b.allocator);
         defer files.deinit();
 
