@@ -17,7 +17,11 @@ pub fn build(b: *std.Build) void {
     lib.linkLibC();
     switch (t.os.tag) {
         .windows => {
+            lib.defineCMacro("SDL_STATIC_LIB", "");
             lib.addCSourceFiles(.{ .files = &windows_src_files });
+            lib.linkSystemLibrary("user32");
+            lib.linkSystemLibrary("shell32");
+            lib.linkSystemLibrary("advapi32");
             lib.linkSystemLibrary("setupapi");
             lib.linkSystemLibrary("winmm");
             lib.linkSystemLibrary("gdi32");
