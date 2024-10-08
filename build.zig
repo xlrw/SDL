@@ -17,7 +17,11 @@ pub fn build(b: *std.Build) void {
     lib.linkLibC();
     switch (t.os.tag) {
         .windows => {
+            lib.defineCMacro("SDL_STATIC_LIB", "");
             lib.addCSourceFiles(.{ .files = &windows_src_files });
+            lib.linkSystemLibrary("user32");
+            lib.linkSystemLibrary("shell32");
+            lib.linkSystemLibrary("advapi32");
             lib.linkSystemLibrary("setupapi");
             lib.linkSystemLibrary("winmm");
             lib.linkSystemLibrary("gdi32");
@@ -135,7 +139,7 @@ pub fn build(b: *std.Build) void {
         }
         lib.addCSourceFiles(.{ .files = files.toOwnedSlice() catch @panic("OOM") });
         lib.addConfigHeader(config_header);
-        lib.installConfigHeader(config_header);
+        lib.installHeader(config_header.getOutput(), "SDL2/SDL_config.h");
 
         const revision_header = b.addConfigHeader(.{
             .style = .{ .cmake = b.path("include/SDL_revision.h.cmake") },

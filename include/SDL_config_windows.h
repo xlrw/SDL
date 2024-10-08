@@ -99,7 +99,9 @@ typedef unsigned int uintptr_t;
 #endif
 #if defined(_WIN32_MAXVER) && _WIN32_MAXVER >= 0x0602  /* Windows 8 SDK */
 #define HAVE_D3D11_H 1
+#if !defined(_MSC_VER)
 #define HAVE_ROAPI_H 1
+#endif
 #endif
 #if defined(__has_include)
 #if __has_include(<d3d12.h>) && __has_include(<d3d12sdklayers.h>)
