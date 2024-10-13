@@ -115,13 +115,18 @@ pub fn build(b: *std.Build) void {
             .linux => {
                 files.appendSlice(&linux_src_files) catch @panic("OOM");
                 config_header.addValues(.{
+                    .HAVE_INOTIFY = 1,
+                    .HAVE_INOTIFY_INIT = 1,
+                    .HAVE_INOTIFY_INIT1 = 1,
                     .HAVE_LINUX_INPUT_H = 1,
+                    .SDL_FILESYSTEM_UNIX = 1,
+                    .SDL_HAPTIC_LINUX = 1,
+                    .SDL_INPUT_LINUXEV = 1,
+                    .SDL_JOYSTICK_LINUX = 1,
+                    .SDL_LOADSO_DLOPEN = 1,
                     .SDL_THREAD_PTHREAD = 1,
                     .SDL_THREAD_PTHREAD_RECURSIVE_MUTEX = 1,
                     .SDL_TIMER_UNIX = 1,
-                    .SDL_HAPTIC_LINUX = 1,
-                    .SDL_FILESYSTEM_UNIX = 1,
-                    .SDL_LOADSO_DLOPEN = 1,
                     .SDL_VIDEO_OPENGL = 1,
                     .SDL_VIDEO_OPENGL_ES = 1,
                     .SDL_VIDEO_OPENGL_ES2 = 1,
@@ -349,6 +354,9 @@ const windows_src_files = [_][]const u8{
 };
 
 const linux_src_files = [_][]const u8{
+    "src/core/linux/SDL_evdev.c",
+    "src/core/linux/SDL_evdev_capabilities.c",
+    "src/core/linux/SDL_evdev_kbd.c",
     "src/core/linux/SDL_threadprio.c",
     "src/core/unix/SDL_poll.c",
 
@@ -358,7 +366,7 @@ const linux_src_files = [_][]const u8{
 
     "src/loadso/dlopen/SDL_sysloadso.c",
     "src/joystick/linux/SDL_sysjoystick.c",
-    "src/joystick/dummy/SDL_sysjoystick.c",
+    "src/joystick/steam/SDL_steamcontroller.c",
 
     "src/misc/unix/SDL_sysurl.c",
 
@@ -521,7 +529,6 @@ const unknown_src_files = [_][]const u8{
     "src/core/os2/geniconv/os2iconv.c",
     "src/core/os2/geniconv/sys2utf8.c",
     "src/core/os2/geniconv/test.c",
-    "src/core/unix/SDL_poll.c",
 
     "src/file/n3ds/SDL_rwopsromfs.c",
 
@@ -549,7 +556,6 @@ const unknown_src_files = [_][]const u8{
     "src/joystick/os2/SDL_os2joystick.c",
     "src/joystick/ps2/SDL_sysjoystick.c",
     "src/joystick/psp/SDL_sysjoystick.c",
-    "src/joystick/steam/SDL_steamcontroller.c",
     "src/joystick/vita/SDL_sysjoystick.c",
 
     "src/loadso/dummy/SDL_sysloadso.c",
