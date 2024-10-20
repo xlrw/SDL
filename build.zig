@@ -73,7 +73,7 @@ pub fn build(b: *std.Build) void {
         },
         else => {
             switch (target.result.abi) {
-                .android, .androideabi => {
+                .android => {
                     lib.root_module.addCSourceFiles(.{
                         .files = &android_src_files,
                     });
