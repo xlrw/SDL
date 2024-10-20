@@ -5,13 +5,20 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
     const t = target.result;
 
-    const lib = b.addStaticLibrary(.{
+    const is_shared_library = target.result.isAndroid();
+    const lib = if (!is_shared_library) b.addStaticLibrary(.{
         .name = "SDL2",
         .target = target,
         .optimize = optimize,
+        .link_libc = true,
+    }) else b.addSharedLibrary(.{
+        .name = "SDL2",
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
     });
 
-    lib.addIncludePath(b.path("include"));
+    const sdl_include_path = b.path("include");
     lib.addCSourceFiles(.{ .files = &generic_src_files });
     lib.defineCMacro("SDL_USE_BUILTIN_OPENGL_DEFINITIONS", "1");
     lib.linkLibC();
@@ -62,13 +69,54 @@ pub fn build(b: *std.Build) void {
             var dir = std.fs.openDirAbsolute(cache_include, std.fs.Dir.OpenDirOptions{ .access_sub_paths = true, .no_follow = true }) catch @panic("No emscripten cache. Generate it!");
             dir.close();
 
-            lib.addIncludePath(b.path(cache_include));
+            lib.addIncludePath(.{ .cwd_relative = cache_include });
         },
-        else => {},
+        else => {
+            switch (target.result.abi) {
+                .android, .androideabi => {
+                    lib.root_module.addCSourceFiles(.{
+                        .files = &android_src_files,
+                    });
+
+                    // This is needed for "src/render/opengles/SDL_render_gles.c" to compile
+                    lib.root_module.addCMacro("GL_GLEXT_PROTOTYPES", "1");
+
+                    // Add Java files to dependency so that they can be copied downstream
+                    const java_dir = b.path("android-project/app/src/main/java/org/libsdl/app");
+                    const java_files: []const []const u8 = &.{
+                        "SDL.java",
+                        "SDLSurface.java",
+                        "SDLActivity.java",
+                        "SDLAudioManager.java",
+                        "SDLControllerManager.java",
+                        "HIDDevice.java",
+                        "HIDDeviceUSB.java",
+                        "HIDDeviceManager.java",
+                        "HIDDeviceBLESteamController.java",
+                    };
+                    const java_write_files = b.addNamedWriteFiles("sdljava");
+                    for (java_files) |java_file_basename| {
+                        _ = java_write_files.addCopyFile(java_dir.path(b, java_file_basename), java_file_basename);
+                    }
+
+                    // https://github.com/libsdl-org/SDL/blob/release-2.30.6/Android.mk#L82C62-L82C69
+                    lib.linkSystemLibrary("dl");
+                    lib.linkSystemLibrary("GLESv1_CM");
+                    lib.linkSystemLibrary("GLESv2");
+                    lib.linkSystemLibrary("OpenSLES");
+                    lib.linkSystemLibrary("log");
+                    lib.linkSystemLibrary("android");
+                },
+                else => {},
+            }
+        },
     }
+
+    lib.addIncludePath(sdl_include_path);
 
     const use_pregenerated_config = switch (t.os.tag) {
         .windows, .macos, .emscripten => true,
+        .linux => target.result.isAndroid(),
         else => false,
     };
 
@@ -153,6 +201,31 @@ pub fn build(b: *std.Build) void {
         lib.addConfigHeader(revision_header);
         lib.installConfigHeader(revision_header);
     }
+
+    const use_hidapi = b.option(bool, "use_hidapi", "Use hidapi shared library") orelse target.result.isAndroid();
+
+    if (use_hidapi) {
+        const hidapi_lib = b.addSharedLibrary(.{
+            .name = "hidapi",
+            .target = target,
+            .optimize = optimize,
+            .link_libc = true,
+        });
+        hidapi_lib.addIncludePath(sdl_include_path);
+        hidapi_lib.addIncludePath(b.path("include-pregen"));
+        hidapi_lib.root_module.addCSourceFiles(.{
+            .root = b.path(""),
+            .files = &[_][]const u8{
+                "src/hidapi/android/hid.cpp",
+            },
+            .flags = &.{"-std=c++11"},
+        });
+        hidapi_lib.linkSystemLibrary("log");
+        hidapi_lib.linkLibCpp();
+        lib.linkLibrary(hidapi_lib);
+        b.installArtifact(hidapi_lib);
+    }
+
     lib.installHeadersDirectory(b.path("include"), "SDL2", .{});
     b.installArtifact(lib);
 }
@@ -287,6 +360,45 @@ const generic_src_files = [_][]const u8{
     "src/joystick/hidapi/SDL_hidapi_xbox360w.c",
     "src/joystick/hidapi/SDL_hidapi_xboxone.c",
     "src/joystick/hidapi/SDL_hidapijoystick.c",
+};
+
+const android_src_files = [_][]const u8{
+    "src/core/android/SDL_android.c",
+
+    "src/audio/android/SDL_androidaudio.c",
+    "src/audio/openslES/SDL_openslES.c",
+    "src/audio/aaudio/SDL_aaudio.c",
+
+    "src/haptic/android/SDL_syshaptic.c",
+    "src/joystick/android/SDL_sysjoystick.c",
+    "src/locale/android/SDL_syslocale.c",
+    "src/misc/android/SDL_sysurl.c",
+    "src/power/android/SDL_syspower.c",
+    "src/filesystem/android/SDL_sysfilesystem.c",
+    "src/sensor/android/SDL_androidsensor.c",
+
+    "src/timer/unix/SDL_systimer.c",
+    "src/loadso/dlopen/SDL_sysloadso.c",
+
+    "src/thread/pthread/SDL_syscond.c",
+    "src/thread/pthread/SDL_sysmutex.c",
+    "src/thread/pthread/SDL_syssem.c",
+    "src/thread/pthread/SDL_systhread.c",
+    "src/thread/pthread/SDL_systls.c",
+    "src/render/opengles/SDL_render_gles.c",
+    "src/render/opengles2/SDL_render_gles2.c",
+    "src/render/opengles2/SDL_shaders_gles2.c",
+
+    "src/video/android/SDL_androidclipboard.c",
+    "src/video/android/SDL_androidevents.c",
+    "src/video/android/SDL_androidgl.c",
+    "src/video/android/SDL_androidkeyboard.c",
+    "src/video/android/SDL_androidmessagebox.c",
+    "src/video/android/SDL_androidmouse.c",
+    "src/video/android/SDL_androidtouch.c",
+    "src/video/android/SDL_androidvideo.c",
+    "src/video/android/SDL_androidvulkan.c",
+    "src/video/android/SDL_androidwindow.c",
 };
 
 const windows_src_files = [_][]const u8{

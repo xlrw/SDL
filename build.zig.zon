@@ -11,5 +11,6 @@
         "include",
         "include-pregen",
         "src",
+        "android-project",
     },
 }
