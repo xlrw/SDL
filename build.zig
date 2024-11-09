@@ -5,7 +5,7 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
     const t = target.result;
 
-    const is_shared_library = target.result.isAndroid();
+    const is_shared_library = t.isAndroid();
     const lib = if (!is_shared_library) b.addStaticLibrary(.{
         .name = "SDL2",
         .target = target,
@@ -72,7 +72,7 @@ pub fn build(b: *std.Build) void {
             lib.addIncludePath(.{ .cwd_relative = cache_include });
         },
         else => {
-            switch (target.result.abi) {
+            switch (t.abi) {
                 .android => {
                     lib.root_module.addCSourceFiles(.{
                         .files = &android_src_files,
@@ -116,7 +116,7 @@ pub fn build(b: *std.Build) void {
 
     const use_pregenerated_config = switch (t.os.tag) {
         .windows, .macos, .emscripten => true,
-        .linux => target.result.isAndroid(),
+        .linux => t.isAndroid(),
         else => false,
     };
 
@@ -202,7 +202,7 @@ pub fn build(b: *std.Build) void {
         lib.installConfigHeader(revision_header);
     }
 
-    const use_hidapi = b.option(bool, "use_hidapi", "Use hidapi shared library") orelse target.result.isAndroid();
+    const use_hidapi = b.option(bool, "use_hidapi", "Use hidapi shared library") orelse t.isAndroid();
 
     if (use_hidapi) {
         const hidapi_lib = b.addSharedLibrary(.{
