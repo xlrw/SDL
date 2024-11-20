@@ -197,9 +197,11 @@ pub fn build(b: *std.Build) void {
         const revision_header = b.addConfigHeader(.{
             .style = .{ .cmake = b.path("include/SDL_revision.h.cmake") },
             .include_path = "SDL_revision.h",
-        }, .{});
+        }, .{
+            .SDL_VENDOR_INFO = "allyourcodebase.com",
+        });
         lib.addConfigHeader(revision_header);
-        lib.installConfigHeader(revision_header);
+        lib.installHeader(revision_header.getOutput(), "SDL2/SDL_revision.h");
     }
 
     const use_hidapi = b.option(bool, "use_hidapi", "Use hidapi shared library") orelse t.isAndroid();
