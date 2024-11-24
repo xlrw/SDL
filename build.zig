@@ -72,42 +72,39 @@ pub fn build(b: *std.Build) void {
             lib.addIncludePath(.{ .cwd_relative = cache_include });
         },
         else => {
-            switch (t.abi) {
-                .android => {
-                    lib.root_module.addCSourceFiles(.{
-                        .files = &android_src_files,
-                    });
+            if (t.isAndroid()) {
+                lib.root_module.addCSourceFiles(.{
+                    .files = &android_src_files,
+                });
 
-                    // This is needed for "src/render/opengles/SDL_render_gles.c" to compile
-                    lib.root_module.addCMacro("GL_GLEXT_PROTOTYPES", "1");
+                // This is needed for "src/render/opengles/SDL_render_gles.c" to compile
+                lib.root_module.addCMacro("GL_GLEXT_PROTOTYPES", "1");
 
-                    // Add Java files to dependency so that they can be copied downstream
-                    const java_dir = b.path("android-project/app/src/main/java/org/libsdl/app");
-                    const java_files: []const []const u8 = &.{
-                        "SDL.java",
-                        "SDLSurface.java",
-                        "SDLActivity.java",
-                        "SDLAudioManager.java",
-                        "SDLControllerManager.java",
-                        "HIDDevice.java",
-                        "HIDDeviceUSB.java",
-                        "HIDDeviceManager.java",
-                        "HIDDeviceBLESteamController.java",
-                    };
-                    const java_write_files = b.addNamedWriteFiles("sdljava");
-                    for (java_files) |java_file_basename| {
-                        _ = java_write_files.addCopyFile(java_dir.path(b, java_file_basename), java_file_basename);
-                    }
+                // Add Java files to dependency so that they can be copied downstream
+                const java_dir = b.path("android-project/app/src/main/java/org/libsdl/app");
+                const java_files: []const []const u8 = &.{
+                    "SDL.java",
+                    "SDLSurface.java",
+                    "SDLActivity.java",
+                    "SDLAudioManager.java",
+                    "SDLControllerManager.java",
+                    "HIDDevice.java",
+                    "HIDDeviceUSB.java",
+                    "HIDDeviceManager.java",
+                    "HIDDeviceBLESteamController.java",
+                };
+                const java_write_files = b.addNamedWriteFiles("sdljava");
+                for (java_files) |java_file_basename| {
+                    _ = java_write_files.addCopyFile(java_dir.path(b, java_file_basename), java_file_basename);
+                }
 
-                    // https://github.com/libsdl-org/SDL/blob/release-2.30.6/Android.mk#L82C62-L82C69
-                    lib.linkSystemLibrary("dl");
-                    lib.linkSystemLibrary("GLESv1_CM");
-                    lib.linkSystemLibrary("GLESv2");
-                    lib.linkSystemLibrary("OpenSLES");
-                    lib.linkSystemLibrary("log");
-                    lib.linkSystemLibrary("android");
-                },
-                else => {},
+                // https://github.com/libsdl-org/SDL/blob/release-2.30.6/Android.mk#L82C62-L82C69
+                lib.linkSystemLibrary("dl");
+                lib.linkSystemLibrary("GLESv1_CM");
+                lib.linkSystemLibrary("GLESv2");
+                lib.linkSystemLibrary("OpenSLES");
+                lib.linkSystemLibrary("log");
+                lib.linkSystemLibrary("android");
             }
         },
     }
