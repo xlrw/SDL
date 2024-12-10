@@ -21,6 +21,8 @@ pub fn build(b: *std.Build) void {
     const sdl_include_path = b.path("include");
     lib.addCSourceFiles(.{ .files = &generic_src_files });
     lib.defineCMacro("SDL_USE_BUILTIN_OPENGL_DEFINITIONS", "1");
+    lib.defineCMacro("HAVE_GCC_ATOMICS", "1");
+    lib.defineCMacro("HAVE_GCC_SYNC_LOCK_TEST_AND_SET", "1");
     lib.linkLibC();
     switch (t.os.tag) {
         .windows => {
