@@ -20,13 +20,13 @@ pub fn build(b: *std.Build) void {
 
     const sdl_include_path = b.path("include");
     lib.addCSourceFiles(.{ .files = &generic_src_files });
-    lib.defineCMacro("SDL_USE_BUILTIN_OPENGL_DEFINITIONS", "1");
-    lib.defineCMacro("HAVE_GCC_ATOMICS", "1");
-    lib.defineCMacro("HAVE_GCC_SYNC_LOCK_TEST_AND_SET", "1");
+    lib.root_module.addCMacro("SDL_USE_BUILTIN_OPENGL_DEFINITIONS", "1");
+    lib.root_module.addCMacro("HAVE_GCC_ATOMICS", "1");
+    lib.root_module.addCMacro("HAVE_GCC_SYNC_LOCK_TEST_AND_SET", "1");
     lib.linkLibC();
     switch (t.os.tag) {
         .windows => {
-            lib.defineCMacro("SDL_STATIC_LIB", "");
+            lib.root_module.addCMacro("SDL_STATIC_LIB", "");
             lib.addCSourceFiles(.{ .files = &windows_src_files });
             lib.linkSystemLibrary("user32");
             lib.linkSystemLibrary("shell32");
@@ -58,8 +58,8 @@ pub fn build(b: *std.Build) void {
             lib.linkFramework("Foundation");
         },
         .emscripten => {
-            lib.defineCMacro("__EMSCRIPTEN_PTHREADS__ ", "1");
-            lib.defineCMacro("USE_SDL", "2");
+            lib.root_module.addCMacro("__EMSCRIPTEN_PTHREADS__ ", "1");
+            lib.root_module.addCMacro("USE_SDL", "2");
             lib.addCSourceFiles(.{ .files = &emscripten_src_files });
             if (b.sysroot == null) {
                 @panic("Pass '--sysroot \"$EMSDK/upstream/emscripten\"'");
@@ -125,7 +125,7 @@ pub fn build(b: *std.Build) void {
         lib.addCSourceFiles(.{ .files = render_driver_sw.src_files });
     } else {
         // causes pregenerated SDL_config.h to assert an error
-        lib.defineCMacro("USING_GENERATED_CONFIG_H", "");
+        lib.root_module.addCMacro("USING_GENERATED_CONFIG_H", "");
 
         var files = std.ArrayList([]const u8).init(b.allocator);
         defer files.deinit();
@@ -1002,7 +1002,7 @@ fn applyOptions(
     inline for (options) |option| {
         const enabled = if (b.option(bool, option.name, option.desc)) |o| o else option.default;
         for (option.c_macros) |name| {
-            lib.defineCMacro(name, if (enabled) "1" else "0");
+            lib.root_module.addCMacro(name, if (enabled) "1" else "0");
         }
         for (option.sdl_configs) |config| {
             config_header.values.put(config, .{ .int = if (enabled) 1 else 0 }) catch @panic("OOM");
