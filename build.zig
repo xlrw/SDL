@@ -158,7 +158,7 @@ pub fn build(b: *std.Build) void {
             .style = .{ .cmake = b.path("include/SDL_revision.h.cmake") },
             .include_path = "SDL_revision.h",
         }, .{
-            .SDL_REVISION = "SDL-2.30.10",
+            .SDL_REVISION = "SDL-2.30.11",
             .SDL_VENDOR_INFO = "allyourcodebase.com",
         });
         lib.addConfigHeader(revision_header);
