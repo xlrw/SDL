@@ -159,7 +159,7 @@ pub fn build(b: *std.Build) void {
             .style = .{ .cmake = b.path("include/SDL_revision.h.cmake") },
             .include_path = "SDL_revision.h",
         }, .{
-            .SDL_REVISION = "SDL-2.30.12",
+            .SDL_REVISION = "SDL-2.32.0",
             .SDL_VENDOR_INFO = "allyourcodebase.com",
         });
         lib.addConfigHeader(revision_header);
@@ -686,7 +686,6 @@ const unknown_src_files = [_][]const u8{
     "src/test/SDL_test_memory.c",
     "src/test/SDL_test_random.c",
 
-    "src/thread/n3ds/SDL_syscond.c",
     "src/thread/n3ds/SDL_sysmutex.c",
     "src/thread/n3ds/SDL_syssem.c",
     "src/thread/n3ds/SDL_systhread.c",
