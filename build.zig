@@ -7,7 +7,7 @@ pub fn build(b: *std.Build) void {
 
     const lib = b.addLibrary(.{
         .name = "SDL2",
-        .version = .{ .major = 2, .minor = 32, .patch = 4 },
+        .version = .{ .major = 2, .minor = 32, .patch = 6 },
         .linkage = if (t.abi.isAndroid()) .dynamic else .static,
         .root_module = b.createModule(.{
             .target = target,
