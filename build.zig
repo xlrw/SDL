@@ -66,7 +66,7 @@ pub fn build(b: *std.Build) void {
             const cache_include = std.fs.path.join(b.allocator, &.{ b.sysroot.?, "cache", "sysroot", "include" }) catch @panic("Out of memory");
             defer b.allocator.free(cache_include);
 
-            var dir = std.fs.openDirAbsolute(cache_include, std.fs.Dir.OpenDirOptions{ .access_sub_paths = true, .no_follow = true }) catch @panic("No emscripten cache. Generate it!");
+            var dir = std.fs.openDirAbsolute(cache_include, .{ .access_sub_paths = true, .no_follow = true }) catch @panic("No emscripten cache. Generate it!");
             dir.close();
 
             lib.addIncludePath(.{ .cwd_relative = cache_include });
@@ -152,11 +152,13 @@ pub fn build(b: *std.Build) void {
         lib.addConfigHeader(config_header);
         lib.installHeader(config_header.getOutput(), "SDL2/SDL_config.h");
 
+        // TODO: Remove compatibility shim when Zig 0.15.0 is the minimum required version.
+        const fmt_shim = if (@hasDecl(std, "Io")) "{f}" else "{}";
         const revision_header = b.addConfigHeader(.{
             .style = .{ .cmake = b.path("include/SDL_revision.h.cmake") },
             .include_path = "SDL_revision.h",
         }, .{
-            .SDL_REVISION = b.fmt("SDL-{}", .{lib.version.?}),
+            .SDL_REVISION = b.fmt("SDL-" ++ fmt_shim, .{lib.version.?}),
             .SDL_VENDOR_INFO = "allyourcodebase.com",
         });
         lib.addConfigHeader(revision_header);
@@ -166,11 +168,15 @@ pub fn build(b: *std.Build) void {
     const use_hidapi = b.option(bool, "use_hidapi", "Use hidapi shared library") orelse t.abi.isAndroid();
 
     if (use_hidapi) {
-        const hidapi_lib = b.addSharedLibrary(.{
+        const hidapi_lib = b.addLibrary(.{
             .name = "hidapi",
-            .target = target,
-            .optimize = optimize,
-            .link_libc = true,
+            .linkage = .dynamic,
+            .root_module = b.createModule(.{
+                .target = target,
+                .optimize = optimize,
+                .link_libc = true,
+                .link_libcpp = true,
+            }),
         });
         hidapi_lib.addIncludePath(sdl_include_path);
         hidapi_lib.addIncludePath(b.path("include-pregen"));
@@ -182,7 +188,6 @@ pub fn build(b: *std.Build) void {
             .flags = &.{"-std=c++11"},
         });
         hidapi_lib.linkSystemLibrary("log");
-        hidapi_lib.linkLibCpp();
         lib.linkLibrary(hidapi_lib);
         b.installArtifact(hidapi_lib);
     }
