@@ -15,18 +15,9 @@ zig fetch --save=SDL git+https://github.com/allyourcodebase/SDL
 
 Add this to your `build.zig` :
 ```zig
-pub fn build(b: *std.Build) void {
-// ...
-
 const sdl_dep = b.dependency("SDL", .{
     .optimize = .ReleaseFast,
     .target = target,
 });
-
-// ...
-
 exe.linkLibrary(sdl_dep.artifact("SDL2"));
-
-// ...
-}
 ```
