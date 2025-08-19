@@ -125,13 +125,10 @@ pub fn build(b: *std.Build) void {
         // causes pregenerated SDL_config.h to assert an error
         lib.root_module.addCMacro("USING_GENERATED_CONFIG_H", "");
 
-        var files = std.ArrayList([]const u8).init(b.allocator);
-        defer files.deinit();
-
         const config_header = configHeader(b, t);
         switch (t.os.tag) {
             .linux => {
-                files.appendSlice(&linux_src_files) catch @panic("OOM");
+                lib.addCSourceFiles(.{ .files = &linux_src_files });
                 config_header.addValues(.{
                     .SDL_VIDEO_OPENGL = 1,
                     .SDL_VIDEO_OPENGL_ES = 1,
@@ -144,11 +141,10 @@ pub fn build(b: *std.Build) void {
                     .SDL_VIDEO_OPENGL_OSMESA = 1,
                     .SDL_VIDEO_OPENGL_OSMESA_DYNAMIC = 1,
                 });
-                applyOptions(b, lib, &files, config_header, &linux_options);
+                applyOptions(b, lib, config_header, &linux_options);
             },
             else => {},
         }
-        lib.addCSourceFiles(.{ .files = files.toOwnedSlice() catch @panic("OOM") });
         lib.addConfigHeader(config_header);
         lib.installHeader(config_header.getOutput(), "SDL2/SDL_config.h");
 
@@ -997,7 +993,6 @@ const linux_options = [_]SdlOption{
 fn applyOptions(
     b: *std.Build,
     lib: *std.Build.Step.Compile,
-    files: *std.ArrayList([]const u8),
     config_header: *std.Build.Step.ConfigHeader,
     comptime options: []const SdlOption,
 ) void {
@@ -1010,7 +1005,7 @@ fn applyOptions(
             config_header.values.put(config, .{ .int = if (enabled) 1 else 0 }) catch @panic("OOM");
         }
         if (enabled) {
-            files.appendSlice(option.src_files) catch @panic("OOM");
+            lib.addCSourceFiles(.{ .files = option.src_files });
             for (option.system_libs) |lib_name| {
                 lib.linkSystemLibrary(lib_name);
             }
