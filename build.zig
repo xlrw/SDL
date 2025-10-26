@@ -1450,7 +1450,7 @@ fn configHeader(b: *std.Build, t: std.Target) *std.Build.Step.ConfigHeader {
         .SDL_VIDEO_OPENGL_OSMESA_DYNAMIC = 0,
 
         // Enable Vulkan support
-        .SDL_VIDEO_VULKAN = 0,
+        .SDL_VIDEO_VULKAN = 1,
 
         // Enable Metal support
         .SDL_VIDEO_METAL = 0,
